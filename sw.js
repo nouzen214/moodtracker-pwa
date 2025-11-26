@@ -1,21 +1,3 @@
-// Service Worker for PWA
-const CACHE_NAME = 'moodtracker-v1';
-const urlsToCache = [
-    './',
-    './index.html',
-    './signup.html',
-    './dashboard.html',
-    './admin.html',
-    './css/style.css',
-    './js/api.js',
-    './assets/logo.png',
-    './assets/bg.png'
-];
-
-// Install event - cache files
-self.addEventListener('install', event => {
-    event.waitUntil(
-        caches.open(CACHE_NAME)
             .then(cache => cache.addAll(urlsToCache))
     );
 });
