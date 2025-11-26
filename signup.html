@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MoodTracker - Sign Up</title>
+    <link rel="stylesheet" href="style.css?v=3">
+</head>
+
+<body>
+    <div class="auth-container">
+        <div class="auth-card">
+            <img src="logo.png" alt="MoodTracker Logo" class="logo" onerror="this.style.display='none'">
+            <h1>🌟 Create Account</h1>
+            <p class="subtitle">Start tracking your mood today</p>
+
+            <form id="signupForm" class="auth-form">
+                <div class="form-group">
+                    <label for="fullname">👤 Full Name</label>
+                    <input type="text" id="fullname" required placeholder="John Doe">
+                </div>
+
+                <div class="form-group">
+                    <label for="email">📧 Email</label>
+                    <input type="email" id="email" required placeholder="your@email.com">
+                    <small>Use @admin.com for admin account</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">🔒 Password</label>
+                    <input type="password" id="password" required minlength="6" placeholder="••••••••">
+                    <small>At least 6 characters</small>
+                </div>
+
+                <button type="submit" class="btn btn-primary">Create Account</button>
+
+                <p class="auth-link">
+                    Already have an account? <a href="index.html">Sign In</a>
+                </p>
+            </form>
+
+            <div id="message" class="message"></div>
+        </div>
+    </div>
+
+    <script src="api.js?v=3"></script>
+    <script>
+        // Handle sign up
+        document.getElementById('signupForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const fullname = document.getElementById('fullname').value;
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const messageEl = document.getElementById('message');
+
+            try {
+                messageEl.textContent = '🔄 Creating account...';
+                messageEl.className = 'message info';
+
+                await auth.signUp(fullname, email, password);
+
+                messageEl.textContent = '✅ Account created! Redirecting to sign in...';
+                messageEl.className = 'message success';
+
+                // Redirect to sign in
+                setTimeout(() => {
+                    window.location.href = 'index.html';
+                }, 2000);
+
+            } catch (error) {
+                messageEl.textContent = `❌ Error: ${error.message}`;
+                messageEl.className = 'message error';
+            }
+        });
+    </script>
+</body>
+
+</html>
