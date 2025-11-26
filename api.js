@@ -1,7 +1,7 @@
 // API Configuration
 const API_BASE_URL = 'https://mood-tracker-backend-02wl.onrender.com/api';
 
-// Helper function to get stored auth token
+// Helper function to get stored auth token (using user_id as token since backend doesn't provide one)
 function getAuthToken() {
     return localStorage.getItem('idToken');
 }
@@ -42,17 +42,30 @@ async function apiCall(endpoint, method = 'GET', data = null) {
 // Authentication APIs
 const auth = {
     async signUp(fullname, email, password) {
+        // Backend expects: email, password, fullname
         const result = await apiCall('/signup', 'POST', { fullname, email, password });
         return result;
     },
 
     async signIn(email, password) {
+        // Backend expects: email (password is ignored by backend currently but we send it)
         const result = await apiCall('/signin', 'POST', { email, password });
-        if (result.idToken && result.localId) {
-            localStorage.setItem('idToken', result.idToken);
-            localStorage.setItem('userId', result.localId);
-            localStorage.setItem('userRole', result.role);
+
+        // FIX: Handle backend response format
+        // Backend returns: { success: true, user_id: "...", user_data: { ... } }
+        if (result.success && result.user_id) {
+            // Backend doesn't return idToken, so we use user_id as a token for now to satisfy isAuthenticated
+            localStorage.setItem('idToken', result.user_id);
+            localStorage.setItem('userId', result.user_id);
+
+            // Extract role from user_data
+            const role = (result.user_data && result.user_data.role) ? result.user_data.role : 'user';
+            localStorage.setItem('userRole', role);
+
             localStorage.setItem('userEmail', email);
+
+            // Add role to result for index.html to use
+            result.role = role;
         }
         return result;
     },
@@ -73,42 +86,72 @@ const auth = {
 
 // Mood APIs
 const moods = {
-    async save(date, mood, intensity, reflection) {
-        const token = getAuthToken();
+    async save(dateStr, mood, intensity, reflection) {
         const userId = getUserId();
+        // Parse YYYY-MM-DD
+        const [year, month, day] = dateStr.split('-');
+
+        // Backend expects: user_id, year, month, day, mood, note
         return await apiCall('/save_mood', 'POST', {
-            uid: userId,
-            date, mood, intensity, reflection,
-            id_token: token
+            user_id: userId,
+            year: parseInt(year),
+            month: parseInt(month),
+            day: parseInt(day),
+            mood: mood,
+            note: reflection // Backend calls it 'note'
+            // intensity is not supported by backend save_mood yet, but we can append it to note if needed
+            // For now, we'll just send what the backend supports
         });
     },
 
     async get() {
-        const token = getAuthToken();
         const userId = getUserId();
-        return await apiCall('/get_moods', 'POST', {
-            uid: userId,
-            id_token: token
+        const date = new Date();
+        const year = date.getFullYear();
+        const month = date.getMonth() + 1;
+
+        // Backend expects: user_id, year, month
+        const result = await apiCall('/get_moods', 'POST', {
+            user_id: userId,
+            year: year,
+            month: month
         });
+
+        // Transform backend response to match frontend expectation: { moods: { YYYY: { MM: { DD: ... } } } }
+        // Backend returns: { moods: { DD: [ { mood: '...', ... } ] } } (structure depends on firebase)
+        // We need to wrap it to match the calendar's expected structure
+
+        const formattedMoods = {};
+        if (result.moods) {
+            formattedMoods[year] = {};
+            formattedMoods[year][month] = result.moods;
+        }
+
+        return { moods: formattedMoods };
     },
 
-    async delete(date, index) {
-        const token = getAuthToken();
+    async delete(dateStr, index) {
         const userId = getUserId();
+        const [year, month, day] = dateStr.split('-');
+
         return await apiCall('/delete_mood', 'POST', {
-            uid: userId,
-            date, index,
-            id_token: token
+            user_id: userId,
+            year: parseInt(year),
+            month: parseInt(month),
+            day: parseInt(day),
+            index: index
         });
     },
 
-    async deleteAll(date) {
-        const token = getAuthToken();
+    async deleteAll(dateStr) {
         const userId = getUserId();
+        const [year, month, day] = dateStr.split('-');
+
         return await apiCall('/delete_all_moods', 'POST', {
-            uid: userId,
-            date,
-            id_token: token
+            user_id: userId,
+            year: parseInt(year),
+            month: parseInt(month),
+            day: parseInt(day)
         });
     }
 };
@@ -116,13 +159,11 @@ const moods = {
 // AI Chat API
 const ai = {
     async chat(message, history = []) {
-        const token = getAuthToken();
         const userId = getUserId();
+        // Backend expects: user_id, message
         return await apiCall('/ai_chat', 'POST', {
-            uid: userId,
-            message,
-            history,
-            id_token: token
+            user_id: userId,
+            message: message
         });
     }
 };
@@ -130,11 +171,10 @@ const ai = {
 // Admin APIs
 const admin = {
     async getAllUsers() {
-        const token = getAuthToken();
         const userId = getUserId();
+        // Backend expects: admin_id
         return await apiCall('/get_all_users', 'POST', {
-            admin_uid: userId,
-            id_token: token
+            admin_id: userId
         });
     }
 };
