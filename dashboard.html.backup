@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MoodTracker - Dashboard</title>
-    <link rel="stylesheet" href="style.css?v=5">
+    <link rel="stylesheet" href="style.css?v=4">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 
@@ -198,7 +198,7 @@
         </div>
     </div>
 
-    <script src="api.js?v=5"></script>
+    <script src="api.js?v=4"></script>
     <script>
         // Check authentication
         if (!auth.isAuthenticated()) {
@@ -222,6 +222,7 @@
             const email = localStorage.getItem('userEmail');
             document.getElementById('userGreeting').textContent = `Welcome, ${email}!`;
 
+            // Setup summary year selector
             const yearSelect = document.getElementById('summaryYear');
             for (let y = 2020; y <= 2030; y++) {
                 const opt = document.createElement('option');
@@ -299,6 +300,7 @@
             selectedDate = { year: currentYear, month: currentMonth, day };
             document.getElementById('moodModalTitle').textContent = `Mood Entry - Day ${day}`;
 
+            // Load existing moods
             const existing = await moods.get(currentYear, currentMonth);
             const dayMoods = existing && existing[day] ? existing[day] : [];
 
@@ -351,64 +353,12 @@
         function setupIntensitySlider() {
             const slider = document.getElementById('intensity');
             const value = document.getElementById('intensityValue');
-            slider.oninput = function () {
-                value.textContent = this.value;
-            };
+            await moods.delete(selectedDate.year, selectedDate.month, selectedDate.day, index);
+            openMoodModal(selectedDate.day);
+            loadCalendar();
+        } catch (error) {
+            alert('Error deleting mood: ' + error.message);
         }
-
-        // MOOD SAVE WITH AUTO AI RESPONSE (matching desktop app)
-        document.getElementById('moodForm').onsubmit = async function (e) {
-            e.preventDefault();
-
-            if (!selectedMood) {
-                alert('Please select a mood!');
-                return;
-            }
-
-            const intensity = document.getElementById('intensity').value;
-            const reflection = document.getElementById('reflection').value;
-
-            try {
-                // Save the mood
-                await moods.save(selectedDate.year, selectedDate.month, selectedDate.day,
-                    selectedMood, parseInt(intensity), reflection);
-
-                closeMoodModal();
-                loadCalendar();
-
-                // Automatically send to AI (matching desktop app behavior - main.py line 1207)
-                const aiMessage = `I felt ${selectedMood} today with intensity ${intensity}/10. ${reflection}`;
-
-                // Open AI chat modal
-                showAIChat();
-
-                // Add user message to chat
-                addChatMessage(aiMessage, 'user');
-
-                // Get AI response
-                try {
-                    const response = await ai.chat(aiMessage);
-                    addChatMessage(response.response, 'ai');
-                } catch (error) {
-                    addChatMessage('Sorry, I encountered an error getting AI response.', 'ai');
-                }
-
-                alert('✅ Mood saved! Check AI chat for response.');
-            } catch (error) {
-                alert('❌ Error: ' + error.message);
-            }
-        };
-
-        async function deleteMood(index) {
-            if (!confirm('Delete this mood entry?')) return;
-
-            try {
-                await moods.delete(selectedDate.year, selectedDate.month, selectedDate.day, index);
-                openMoodModal(selectedDate.day);
-                loadCalendar();
-            } catch (error) {
-                alert('Error deleting mood: ' + error.message);
-            }
         }
 
         async function deleteAllMoods() {
@@ -453,6 +403,7 @@
                 endDate = new Date(year, month, 0);
             }
 
+            // Get all moods
             const allMoods = await moods.getAll();
             const counts = {};
 
