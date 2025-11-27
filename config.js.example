@@ -1,0 +1,10 @@
+// config.js - LOCAL DEVELOPMENT ONLY
+// DO NOT COMMIT THIS FILE TO GITHUB!
+// Add this file to .gitignore
+
+window.CONFIG = {
+    FIREBASE_API_KEY: "YOUR_FIREBASE_API_KEY_HERE",
+    DATABASE_URL: "https://mood-tracker-df3a2-default-rtdb.asia-southeast1.firebasedatabase.app/",
+    GEMINI_KEY: "YOUR_GEMINI_API_KEY_HERE",
+    GEMINI_API_URL: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
+};

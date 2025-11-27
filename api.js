@@ -1,8 +1,27 @@
-// Firebase Configuration
-const FIREBASE_API_KEY = "AIzaSyCM10_89lNtUzOBIse37J2Mbc6qqPxncj0";
-const DATABASE_URL = "https://mood-tracker-df3a2-default-rtdb.asia-southeast1.firebasedatabase.app/";
-const GEMINI_KEY = "AIzaSyD8CZaYsH9vaNtNMWJSXlMMUBVlchLvvcY";
-const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
+// Load configuration from environment or use placeholders
+// For production: Create config.js with your actual keys (don't commit it!)
+// For development: Replace these with your keys
+
+let CONFIG = {
+    FIREBASE_API_KEY: "YOUR_FIREBASE_API_KEY_HERE",
+    DATABASE_URL: "https://mood-tracker-df3a2-default-rtdb.asia-southeast1.firebasedatabase.app/",
+    GEMINI_KEY: "YOUR_GEMINI_API_KEY_HERE",
+    GEMINI_API_URL: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
+};
+
+// Try to load from config.js if it exists (for local development)
+try {
+    if (typeof window.CONFIG !== 'undefined') {
+        CONFIG = window.CONFIG;
+    }
+} catch (e) {
+    console.warn('No config.js found, using placeholder values. Please create web/config.js with your API keys.');
+}
+
+const FIREBASE_API_KEY = CONFIG.FIREBASE_API_KEY;
+const DATABASE_URL = CONFIG.DATABASE_URL;
+const GEMINI_KEY = CONFIG.GEMINI_KEY;
+const GEMINI_API_URL = CONFIG.GEMINI_API_URL;
 
 // Helper functions
 function getAuthToken() {
