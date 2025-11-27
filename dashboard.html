@@ -365,26 +365,6 @@
             if (!selectedMood) {
                 alert('Please select a mood!');
                 return;
-            }
-
-            const intensity = document.getElementById('intensity').value;
-            const reflection = document.getElementById('reflection').value;
-
-            try {
-                // Save the mood
-                await moods.save(selectedDate.year, selectedDate.month, selectedDate.day,
-                    selectedMood, parseInt(intensity), reflection);
-
-                closeMoodModal();
-                loadCalendar();
-
-                // Automatically send to AI (matching desktop app behavior - main.py line 1207)
-                const aiMessage = `I felt ${selectedMood} today with intensity ${intensity}/10. ${reflection}`;
-
-                // Open AI chat modal
-                showAIChat();
-
-                // Add user message to chat
                 addChatMessage(aiMessage, 'user');
 
                 // Get AI response
