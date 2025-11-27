@@ -9,7 +9,7 @@
     <link rel="manifest" href="app.webmanifest">
     <link rel="apple-touch-icon" href="logo.png">
     <title>MoodTracker - Sign In</title>
-    <link rel="stylesheet" href="style.css?v=3">
+    <link rel="stylesheet" href="style.css?v=4">
 </head>
 
 <body>
@@ -41,12 +41,18 @@
         </div>
     </div>
 
-    <script src="api.js?v=3"></script>
+    <script src="api.js?v=4"></script>
     <script>
         // Check if already logged in
         if (auth.isAuthenticated()) {
             const role = auth.getRole();
             window.location.href = role === 'admin' ? 'admin.html' : 'dashboard.html';
+        }
+
+        function showMessage(text, type) {
+            const messageEl = document.getElementById('message');
+            messageEl.textContent = text;
+            messageEl.className = `message ${type}`;
         }
 
         // Handle sign in
@@ -55,25 +61,38 @@
 
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
-            const messageEl = document.getElementById('message');
 
             try {
-                messageEl.textContent = '🔄 Signing in...';
-                messageEl.className = 'message info';
-
+                showMessage('Signing in...', 'info');
                 const result = await auth.signIn(email, password);
 
-                messageEl.textContent = '✅ Success! Redirecting...';
-                messageEl.className = 'message success';
+                if (result.success) {
+                    showMessage('Login successful! Redirecting...', 'success');
 
-                // Redirect based on role
-                setTimeout(() => {
-                    window.location.href = result.role === 'admin' ? 'admin.html' : 'dashboard.html';
-                }, 1000);
+                    // Check if user has assigned admin (for regular users)
+                    if (result.role === 'user') {
+                        const hasAssignedAdmin = result.userInfo && result.userInfo.assigned_admin;
 
+                        if (!hasAssignedAdmin) {
+                            // Redirect to admin selection
+                            setTimeout(() => {
+                                window.location.href = 'admin-selection.html';
+                            }, 1000);
+                            return;
+                        }
+                    }
+
+                    // Redirect based on role
+                    setTimeout(() => {
+                        if (result.role === 'admin') {
+                            window.location.href = 'admin.html';
+                        } else {
+                            window.location.href = 'dashboard.html';
+                        }
+                    }, 1000);
+                }
             } catch (error) {
-                messageEl.textContent = `❌ Error: ${error.message}`;
-                messageEl.className = 'message error';
+                showMessage('Login failed: ' + error.message, 'error');
             }
         });
 

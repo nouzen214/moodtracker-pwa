@@ -1,73 +1,128 @@
-// API Configuration
-const API_BASE_URL = 'https://mood-tracker-backend-02wl.onrender.com/api';
+// Firebase Configuration
+const FIREBASE_API_KEY = "AIzaSyCM10_89lNtUzOBIse37J2Mbc6qqPxncj0";
+const DATABASE_URL = "https://mood-tracker-df3a2-default-rtdb.asia-southeast1.firebasedatabase.app/";
+const GEMINI_KEY = "AIzaSyD8CZaYsH9vaNtNMWJSXlMMUBVlchLvvcY";
+const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent";
 
-// Helper function to get stored auth token (using user_id as token since backend doesn't provide one)
+// Helper functions
 function getAuthToken() {
     return localStorage.getItem('idToken');
 }
 
-// Helper function to get stored user ID
 function getUserId() {
     return localStorage.getItem('userId');
 }
 
-// Helper function to make API calls
-async function apiCall(endpoint, method = 'GET', data = null) {
-    const options = {
-        method,
-        headers: {
-            'Content-Type': 'application/json'
-        }
-    };
-
-    if (data) {
-        options.body = JSON.stringify(data);
-    }
-
+// Firebase REST API helpers
+async function fbGet(path, auth = null) {
     try {
-        const response = await fetch(`${API_BASE_URL}${endpoint}`, options);
-        const result = await response.json();
+        path = path.replace(/^\//, '');
+        let url = `${DATABASE_URL}${path}.json`;
+        if (auth) url += `?auth=${auth}`;
 
-        if (!response.ok) {
-            throw new Error(result.error || 'API request failed');
-        }
-
-        return result;
+        const response = await fetch(url);
+        return await response.json();
     } catch (error) {
-        console.error('API Error:', error);
-        throw error;
+        console.error('Firebase GET error:', error);
+        return { error: error.message };
+    }
+}
+
+async function fbPut(path, data, auth = null) {
+    try {
+        path = path.replace(/^\//, '');
+        let url = `${DATABASE_URL}${path}.json`;
+        if (auth) url += `?auth=${auth}`;
+
+        const response = await fetch(url, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        return await response.json();
+    } catch (error) {
+        console.error('Firebase PUT error:', error);
+        return { error: error.message };
+    }
+}
+
+async function fbPost(path, data, auth = null) {
+    try {
+        path = path.replace(/^\//, '');
+        let url = `${DATABASE_URL}${path}.json`;
+        if (auth) url += `?auth=${auth}`;
+
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        return await response.json();
+    } catch (error) {
+        console.error('Firebase POST error:', error);
+        return { error: error.message };
+    }
+}
+
+async function fbDelete(path, auth = null) {
+    try {
+        path = path.replace(/^\//, '');
+        let url = `${DATABASE_URL}${path}.json`;
+        if (auth) url += `?auth=${auth}`;
+
+        const response = await fetch(url, { method: 'DELETE' });
+        return await response.json();
+    } catch (error) {
+        console.error('Firebase DELETE error:', error);
+        return { error: error.message };
     }
 }
 
 // Authentication APIs
 const auth = {
     async signUp(fullname, email, password) {
-        // Backend expects: email, password, fullname
-        const result = await apiCall('/signup', 'POST', { fullname, email, password });
-        return result;
+        const url = `https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${FIREBASE_API_KEY}`;
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password, returnSecureToken: true })
+        });
+
+        const data = await response.json();
+        if (data.error) throw new Error(data.error.message);
+
+        const uid = data.localId;
+        const idToken = data.idToken;
+        const role = email.endsWith('@admin.com') ? 'admin' : 'user';
+
+        await fbPut(`users/${uid}`, { fullname, email, role }, idToken);
+
+        return { success: true, uid, idToken, role };
     },
 
     async signIn(email, password) {
-        // Backend expects: email (password is ignored by backend currently but we send it)
-        const result = await apiCall('/signin', 'POST', { email, password });
+        const url = `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${FIREBASE_API_KEY}`;
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password, returnSecureToken: true })
+        });
 
-        // FIX: Handle backend response format
-        // Backend returns: { success: true, user_id: "...", user_data: { ... } }
-        if (result.success && result.user_id) {
-            // Backend doesn't return idToken, so we use user_id as a token for now to satisfy isAuthenticated
-            localStorage.setItem('idToken', result.user_id);
-            localStorage.setItem('userId', result.user_id);
+        const data = await response.json();
+        if (data.error) throw new Error(data.error.message);
 
-            // Extract role from user_data
-            const role = (result.user_data && result.user_data.role) ? result.user_data.role : 'user';
-            localStorage.setItem('userRole', role);
+        const idToken = data.idToken;
+        const uid = data.localId;
 
-            localStorage.setItem('userEmail', email);
+        const userInfo = await fbGet(`users/${uid}`, idToken) || {};
+        const role = userInfo.role || 'user';
 
-            // Add role to result for index.html to use
-            result.role = role;
-        }
-        return result;
+        localStorage.setItem('idToken', idToken);
+        localStorage.setItem('userId', uid);
+        localStorage.setItem('userRole', role);
+        localStorage.setItem('userEmail', email);
+
+        return { success: true, uid, idToken, role, userInfo };
     },
 
     signOut() {
@@ -86,107 +141,196 @@ const auth = {
 
 // Mood APIs
 const moods = {
-    async save(dateStr, mood, intensity, reflection) {
+    async save(year, month, day, mood, intensity, reflection) {
         const userId = getUserId();
-        // Parse YYYY-MM-DD
-        const [year, month, day] = dateStr.split('-');
+        const idToken = getAuthToken();
 
-        // Backend expects: user_id, year, month, day, mood, note
-        return await apiCall('/save_mood', 'POST', {
-            user_id: userId,
-            year: parseInt(year),
-            month: parseInt(month),
-            day: parseInt(day),
-            mood: mood,
-            note: reflection // Backend calls it 'note'
-            // intensity is not supported by backend save_mood yet, but we can append it to note if needed
-            // For now, we'll just send what the backend supports
-        });
-    },
+        const entry = {
+            mood,
+            intensity,
+            reflection,
+            timestamp: new Date().toISOString()
+        };
 
-    async get() {
-        const userId = getUserId();
-        const date = new Date();
-        const year = date.getFullYear();
-        const month = date.getMonth() + 1;
+        // Get existing moods for the day
+        const existing = await fbGet(`moods/${userId}/${year}/${month}/${day}`, idToken);
+        let moodList = Array.isArray(existing) ? existing : [];
 
-        // Backend expects: user_id, year, month
-        const result = await apiCall('/get_moods', 'POST', {
-            user_id: userId,
-            year: year,
-            month: month
-        });
-
-        // Transform backend response to match frontend expectation: { moods: { YYYY: { MM: { DD: ... } } } }
-        // Backend returns: { moods: { DD: [ { mood: '...', ... } ] } } (structure depends on firebase)
-        // We need to wrap it to match the calendar's expected structure
-
-        const formattedMoods = {};
-        if (result.moods) {
-            formattedMoods[year] = {};
-            formattedMoods[year][month] = result.moods;
+        if (moodList.length >= 10) {
+            throw new Error('Maximum 10 moods per day reached');
         }
 
-        return { moods: formattedMoods };
+        moodList.push(entry);
+        return await fbPut(`moods/${userId}/${year}/${month}/${day}`, moodList, idToken);
     },
 
-    async delete(dateStr, index) {
+    async get(year, month) {
         const userId = getUserId();
-        const [year, month, day] = dateStr.split('-');
-
-        return await apiCall('/delete_mood', 'POST', {
-            user_id: userId,
-            year: parseInt(year),
-            month: parseInt(month),
-            day: parseInt(day),
-            index: index
-        });
+        const idToken = getAuthToken();
+        return await fbGet(`moods/${userId}/${year}/${month}`, idToken);
     },
 
-    async deleteAll(dateStr) {
+    async getAll() {
         const userId = getUserId();
-        const [year, month, day] = dateStr.split('-');
+        const idToken = getAuthToken();
+        return await fbGet(`moods/${userId}`, idToken);
+    },
 
-        return await apiCall('/delete_all_moods', 'POST', {
-            user_id: userId,
-            year: parseInt(year),
-            month: parseInt(month),
-            day: parseInt(day)
-        });
+    async delete(year, month, day, index) {
+        const userId = getUserId();
+        const idToken = getAuthToken();
+
+        const existing = await fbGet(`moods/${userId}/${year}/${month}/${day}`, idToken);
+        if (Array.isArray(existing) && index >= 0 && index < existing.length) {
+            existing.splice(index, 1);
+            return await fbPut(`moods/${userId}/${year}/${month}/${day}`, existing, idToken);
+        }
+    },
+
+    async deleteAll(year, month, day) {
+        const userId = getUserId();
+        const idToken = getAuthToken();
+        return await fbPut(`moods/${userId}/${year}/${month}/${day}`, [], idToken);
     }
 };
 
 // AI Chat API
 const ai = {
-    async chat(message, history = []) {
-        const userId = getUserId();
-        // Backend expects: user_id, message
-        return await apiCall('/ai_chat', 'POST', {
-            user_id: userId,
-            message: message
+    async chat(message) {
+        const url = `${GEMINI_API_URL}?key=${GEMINI_KEY}`;
+        const systemInstruction = "You are a helpful Mood Tracker assistant. You must ONLY discuss topics related to mood, mental health, emotional well-being, and mindfulness. If the user asks about anything else, politely decline and steer the conversation back to their feelings.";
+
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{
+                    parts: [
+                        { text: systemInstruction },
+                        { text: message }
+                    ]
+                }],
+                generationConfig: {
+                    temperature: 0.7,
+                    maxOutputTokens: 800
+                }
+            })
         });
+
+        const data = await response.json();
+
+        if (data.candidates && data.candidates[0]?.content?.parts?.[0]?.text) {
+            return { response: data.candidates[0].content.parts[0].text };
+        }
+
+        return { response: "Sorry, I couldn't generate a response. Please try again." };
+    }
+};
+
+// Messages API
+const messages = {
+    async get() {
+        const userId = getUserId();
+        const idToken = getAuthToken();
+        return await fbGet(`messages/${userId}`, idToken);
+    },
+
+    async getUnreadCount() {
+        const msgs = await this.get();
+        if (!msgs || typeof msgs !== 'object') return 0;
+
+        return Object.values(msgs).filter(m =>
+            typeof m === 'object' && m.status === 'new'
+        ).length;
+    },
+
+    async markAsRead() {
+        const userId = getUserId();
+        const idToken = getAuthToken();
+        const msgs = await this.get();
+
+        if (msgs && typeof msgs === 'object') {
+            Object.keys(msgs).forEach(key => {
+                if (msgs[key].status === 'new') {
+                    msgs[key].status = 'read';
+                }
+            });
+            return await fbPut(`messages/${userId}`, msgs, idToken);
+        }
     }
 };
 
 // Admin APIs
 const admin = {
     async getAllUsers() {
-        const userId = getUserId();
-        // Backend expects: admin_id
-        return await apiCall('/get_all_users', 'POST', {
-            admin_id: userId
+        const adminId = getUserId();
+        const idToken = getAuthToken();
+
+        // Get all users assigned to this admin
+        const allUsers = await fbGet('users', idToken);
+        if (!allUsers || typeof allUsers !== 'object') return {};
+
+        const assignedUsers = {};
+        Object.entries(allUsers).forEach(([uid, userData]) => {
+            if (userData && userData.assigned_admin === adminId) {
+                assignedUsers[uid] = userData;
+            }
         });
+
+        return assignedUsers;
+    },
+
+    async getUserMoods(userId, year, month) {
+        const idToken = getAuthToken();
+        return await fbGet(`moods/${userId}/${year}/${month}`, idToken);
+    },
+
+    async getUserAllMoods(userId) {
+        const idToken = getAuthToken();
+        return await fbGet(`moods/${userId}`, idToken);
+    },
+
+    async sendRecommendation(userId, message) {
+        const idToken = getAuthToken();
+        const messageData = {
+            timestamp: new Date().toISOString(),
+            message: message.trim(),
+            status: 'new'
+        };
+        return await fbPost(`messages/${userId}`, messageData, idToken);
+    },
+
+    async deleteUser(userId) {
+        const idToken = getAuthToken();
+        await fbDelete(`users/${userId}`, idToken);
+        await fbDelete(`moods/${userId}`, idToken);
+        await fbDelete(`messages/${userId}`, idToken);
+        return { success: true };
     }
 };
 
-// Health check
-async function checkHealth() {
-    try {
-        const result = await apiCall('/health');
-        console.log('Backend health:', result);
-        return result;
-    } catch (error) {
-        console.error('Backend is offline:', error);
-        return null;
+// Admin Selection API
+const adminSelection = {
+    async getAvailableAdmins() {
+        const userId = getUserId();
+        const idToken = getAuthToken();
+        const allUsers = await fbGet('users', idToken);
+
+        if (!allUsers || typeof allUsers !== 'object') return {};
+
+        const admins = {};
+        Object.entries(allUsers).forEach(([uid, userData]) => {
+            if (userData && userData.role === 'admin' && uid !== userId) {
+                admins[uid] = userData;
+            }
+        });
+
+        return admins;
+    },
+
+    async assignAdmin(adminId) {
+        const userId = getUserId();
+        const idToken = getAuthToken();
+        return await fbPut(`users/${userId}/assigned_admin`, adminId, idToken);
     }
-}
+};

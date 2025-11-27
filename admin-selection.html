@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MoodTracker - Select Admin</title>
+    <link rel="stylesheet" href="style.css?v=4">
+</head>
+
+<body>
+    <div class="auth-container">
+        <div class="auth-card" style="max-width: 600px;">
+            <h1>👨‍💼 Select Your Admin</h1>
+            <p class="subtitle">Choose an admin to be assigned to</p>
+
+            <div id="adminList" style="margin-top: 30px; text-align: left;">
+                <p style="text-align: center;">Loading available admins...</p>
+            </div>
+
+            <div class="auth-link" style="margin-top: 30px;">
+                <a href="#" onclick="auth.signOut(); return false;">Sign Out</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="api.js?v=4"></script>
+    <script>
+        // Check authentication
+        if (!auth.isAuthenticated()) {
+            window.location.href = 'index.html';
+        }
+
+        // Load available admins
+        async function loadAdmins() {
+            try {
+                const admins = await adminSelection.getAvailableAdmins();
+                const list = document.getElementById('adminList');
+
+                if (Object.keys(admins).length === 0) {
+                    list.innerHTML = `
+                        <div style="text-align: center; padding: 40px 20px;">
+                            <p style="font-size: 1.2rem; color: var(--danger); margin-bottom: 20px;">
+                                ❌ No Admins Available
+                            </p>
+                            <p style="color: var(--text-light);">
+                                There are no admins in the system yet. Please contact support or try again later.
+                            </p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                let html = '<div style="display: grid; gap: 15px;">';
+
+                Object.entries(admins).forEach(([uid, adminData]) => {
+                    html += `
+                        <div style="background: var(--bg); padding: 20px; border-radius: 10px; border: 2px solid var(--border); transition: all 0.3s; cursor: pointer;" 
+                             onmouseover="this.style.borderColor='var(--primary)'; this.style.transform='scale(1.02)'"
+                             onmouseout="this.style.borderColor='var(--border)'; this.style.transform='scale(1)'"
+                             onclick="selectAdmin('${uid}', '${adminData.email}')">
+                            <h3 style="color: var(--primary); margin-bottom: 10px;">
+                                👤 ${adminData.fullname || 'Admin'}
+                            </h3>
+                            <p style="color: var(--text-light); margin-bottom: 15px;">
+                                📧 ${adminData.email}
+                            </p>
+                            <button class="btn btn-primary" onclick="event.stopPropagation(); selectAdmin('${uid}', '${adminData.email}')">
+                                Select This Admin
+                            </button>
+                        </div>
+                    `;
+                });
+
+                html += '</div>';
+                list.innerHTML = html;
+
+            } catch (error) {
+                document.getElementById('adminList').innerHTML = `
+                    <p style="color: var(--danger); text-align: center;">
+                        Error loading admins: ${error.message}
+                    </p>
+                `;
+            }
+        }
+
+        async function selectAdmin(adminId, adminEmail) {
+            if (!confirm(`Assign yourself to admin: ${adminEmail}?`)) {
+                return;
+            }
+
+            try {
+                await adminSelection.assignAdmin(adminId);
+                alert('✅ Admin assigned successfully!');
+                window.location.href = 'dashboard.html';
+            } catch (error) {
+                alert('❌ Error: ' + error.message);
+            }
+        }
+
+        // Initialize
+        loadAdmins();
+    </script>
+</body>
+
+</html>

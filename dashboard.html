@@ -5,7 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MoodTracker - Dashboard</title>
-    <link rel="stylesheet" href="style.css?v=3">
+    <link rel="stylesheet" href="style.css?v=4">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 
 <body>
@@ -17,6 +18,9 @@
                 <p id="userGreeting">Welcome back!</p>
             </div>
             <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <button onclick="showSummaryOptions()" class="btn-secondary">📊 Summaries</button>
+                <button onclick="showMindfulness()" class="btn-secondary">🧘 Mindfulness</button>
+                <button id="messagesBtn" onclick="showMessages()" class="btn-secondary">✉️ Messages</button>
                 <button onclick="showAIChat()" class="btn-secondary">🤖 AI Chat</button>
                 <button onclick="auth.signOut()" class="btn-danger">🚪 Sign Out</button>
             </div>
@@ -37,28 +41,33 @@
 
     <!-- Mood Entry Modal -->
     <div id="moodModal" class="modal">
-        <div class="modal-content">
+        <div class="modal-content" style="max-width: 600px;">
             <div class="modal-header">
-                <h2>Add Mood Entry</h2>
+                <h2 id="moodModalTitle">Mood Entry</h2>
                 <button class="close-btn" onclick="closeMoodModal()">×</button>
             </div>
+
+            <!-- Existing Moods List -->
+            <div id="existingMoods" style="margin-bottom: 20px;"></div>
+
+            <h3 style="margin-bottom: 15px;">➕ Add New Mood</h3>
             <form id="moodForm">
                 <div class="form-group">
                     <label>😊 Select Mood</label>
                     <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
-                        <button type="button" class="mood-btn" data-mood="happy">😊 Happy</button>
-                        <button type="button" class="mood-btn" data-mood="sad">😢 Sad</button>
-                        <button type="button" class="mood-btn" data-mood="angry">😠 Angry</button>
-                        <button type="button" class="mood-btn" data-mood="anxious">😰 Anxious</button>
-                        <button type="button" class="mood-btn" data-mood="calm">😌 Calm</button>
-                        <button type="button" class="mood-btn" data-mood="excited">🤩 Excited</button>
+                        <button type="button" class="mood-btn" data-mood="Happy 😊">😊 Happy</button>
+                        <button type="button" class="mood-btn" data-mood="Sad 😢">😢 Sad</button>
+                        <button type="button" class="mood-btn" data-mood="Angry 😠">😠 Angry</button>
+                        <button type="button" class="mood-btn" data-mood="Anxious 😰">😰 Anxious</button>
+                        <button type="button" class="mood-btn" data-mood="Neutral 😐">😐 Neutral</button>
+                        <button type="button" class="mood-btn" data-mood="Excited 🤩">🤩 Excited</button>
+                        <button type="button" class="mood-btn" data-mood="Love ❤️">❤️ Love</button>
                     </div>
                 </div>
 
                 <div class="form-group">
-                    <label>💪 Intensity (1-10)</label>
+                    <label>💪 Intensity (1-10): <span id="intensityValue">5</span></label>
                     <input type="range" id="intensity" min="1" max="10" value="5">
-                    <span id="intensityValue">5</span>
                 </div>
 
                 <div class="form-group">
@@ -69,6 +78,102 @@
 
                 <button type="submit" class="btn btn-primary">Save Mood</button>
             </form>
+        </div>
+    </div>
+
+    <!-- Summary Options Modal -->
+    <div id="summaryModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>📊 Mood Summaries</h2>
+                <button class="close-btn" onclick="closeSummaryModal()">×</button>
+            </div>
+            <div style="display: grid; gap: 15px;">
+                <div>
+                    <label>Year:</label>
+                    <select id="summaryYear"
+                        style="width: 100%; padding: 10px; border-radius: 8px; border: 2px solid var(--border);"></select>
+                </div>
+                <div>
+                    <label>Month:</label>
+                    <select id="summaryMonth"
+                        style="width: 100%; padding: 10px; border-radius: 8px; border: 2px solid var(--border);">
+                        <option value="1">January</option>
+                        <option value="2">February</option>
+                        <option value="3">March</option>
+                        <option value="4">April</option>
+                        <option value="5">May</option>
+                        <option value="6">June</option>
+                        <option value="7">July</option>
+                        <option value="8">August</option>
+                        <option value="9">September</option>
+                        <option value="10">October</option>
+                        <option value="11">November</option>
+                        <option value="12">December</option>
+                    </select>
+                </div>
+                <button onclick="showSummary('monthly')" class="btn btn-primary">🗓 Monthly Summary</button>
+
+                <div>
+                    <label>Week (1-5):</label>
+                    <select id="summaryWeek"
+                        style="width: 100%; padding: 10px; border-radius: 8px; border: 2px solid var(--border);">
+                        <option value="1">Week 1 (Days 1-7)</option>
+                        <option value="2">Week 2 (Days 8-14)</option>
+                        <option value="3">Week 3 (Days 15-21)</option>
+                        <option value="4">Week 4 (Days 22-28)</option>
+                        <option value="5">Week 5 (Days 29+)</option>
+                    </select>
+                </div>
+                <button onclick="showSummary('weekly')" class="btn btn-primary">📆 Weekly Summary</button>
+
+                <div>
+                    <label>Day:</label>
+                    <input type="number" id="summaryDay" min="1" max="31" value="1"
+                        style="width: 100%; padding: 10px; border-radius: 8px; border: 2px solid var(--border);">
+                </div>
+                <button onclick="showSummary('daily')" class="btn btn-primary">📅 Daily Summary</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chart Display Modal -->
+    <div id="chartModal" class="modal">
+        <div class="modal-content" style="max-width: 700px;">
+            <div class="modal-header">
+                <h2 id="chartTitle">Summary</h2>
+                <button class="close-btn" onclick="closeChartModal()">×</button>
+            </div>
+            <canvas id="summaryChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Mindfulness Modal -->
+    <div id="mindfulnessModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>🧘 Mindfulness Breathing</h2>
+                <button class="close-btn" onclick="closeMindfulness()">×</button>
+            </div>
+            <div style="text-align: center; padding: 40px 20px;">
+                <p style="font-size: 1.2rem; margin-bottom: 30px;">Follow the breathing prompts below</p>
+                <div id="breathingTimer"
+                    style="font-size: 2.5rem; font-weight: bold; color: var(--primary); min-height: 80px; display: flex; align-items: center; justify-content: center;">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Messages Modal -->
+    <div id="messagesModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>✉️ Admin Messages</h2>
+                <button class="close-btn" onclick="closeMessages()">×</button>
+            </div>
+            <div id="messagesList" style="max-height: 400px; overflow-y: auto;"></div>
+            <button onclick="markMessagesRead()" class="btn btn-primary" style="margin-top: 15px;">Mark All as
+                Read</button>
         </div>
     </div>
 
@@ -93,7 +198,7 @@
         </div>
     </div>
 
-    <script src="api.js?v=3"></script>
+    <script src="api.js?v=4"></script>
     <script>
         // Check authentication
         if (!auth.isAuthenticated()) {
@@ -103,19 +208,31 @@
         // Global variables
         let currentYear = new Date().getFullYear();
         let currentMonth = new Date().getMonth() + 1;
-        let selectedDate = null;
+        let selectedDate = { year: currentYear, month: currentMonth, day: 1 };
         let selectedMood = null;
-        let chatHistory = [];
+        let currentChart = null;
 
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
             loadCalendar();
             setupMoodButtons();
             setupIntensitySlider();
+            updateMessageBadge();
 
-            // Set greeting
             const email = localStorage.getItem('userEmail');
             document.getElementById('userGreeting').textContent = `Welcome, ${email}!`;
+
+            // Setup summary year selector
+            const yearSelect = document.getElementById('summaryYear');
+            for (let y = 2020; y <= 2030; y++) {
+                const opt = document.createElement('option');
+                opt.value = y;
+                opt.textContent = y;
+                if (y === currentYear) opt.selected = true;
+                yearSelect.appendChild(opt);
+            }
+
+            document.getElementById('summaryMonth').value = currentMonth;
         });
 
         // Calendar functions
@@ -129,55 +246,41 @@
             const grid = document.getElementById('calendarGrid');
             grid.innerHTML = '';
 
-            // Get first day of month and number of days
             const firstDay = new Date(currentYear, currentMonth - 1, 1).getDay();
             const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
 
-            // Add empty cells for days before month starts
             for (let i = 0; i < firstDay; i++) {
                 const emptyDay = document.createElement('div');
                 emptyDay.className = 'calendar-day empty';
                 grid.appendChild(emptyDay);
             }
 
-            // Add days of month
             for (let day = 1; day <= daysInMonth; day++) {
                 const dayEl = document.createElement('div');
                 dayEl.className = 'calendar-day';
-                dayEl.textContent = day;
+                dayEl.innerHTML = `<div>${day}</div>`;
                 dayEl.onclick = () => openMoodModal(day);
                 grid.appendChild(dayEl);
             }
 
-            // Load moods and highlight days
             try {
-                const moodsData = await moods.get();
-                if (moodsData && moodsData.moods) {
-                    highlightMoodDays(moodsData.moods);
+                const moodsData = await moods.get(currentYear, currentMonth);
+                if (moodsData && typeof moodsData === 'object') {
+                    Object.entries(moodsData).forEach(([day, entries]) => {
+                        if (Array.isArray(entries) && entries.length > 0) {
+                            const dayNum = parseInt(day);
+                            const dayElements = document.querySelectorAll('.calendar-day');
+                            const dayEl = Array.from(dayElements)[firstDay + dayNum - 1];
+                            if (dayEl) {
+                                dayEl.classList.add('has-mood');
+                                dayEl.innerHTML = `<div>${dayNum}</div><div style="font-size: 0.8rem;">(${entries.length})</div>`;
+                            }
+                        }
+                    });
                 }
             } catch (error) {
                 console.error('Error loading moods:', error);
             }
-        }
-
-        function highlightMoodDays(moodsData) {
-            // Parse moods data and highlight calendar days
-            const yearData = moodsData[currentYear];
-            if (!yearData) return;
-
-            const monthData = yearData[currentMonth];
-            if (!monthData) return;
-
-            Object.keys(monthData).forEach(day => {
-                const dayNum = parseInt(day);
-                const dayElements = document.querySelectorAll('.calendar-day');
-                const dayEl = Array.from(dayElements).find(el =>
-                    el.textContent == dayNum && !el.classList.contains('empty')
-                );
-                if (dayEl) {
-                    dayEl.classList.add('has-mood');
-                }
-            });
         }
 
         function changeMonth(delta) {
@@ -193,14 +296,40 @@
         }
 
         // Mood modal functions
-        function openMoodModal(day) {
-            selectedDate = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        async function openMoodModal(day) {
+            selectedDate = { year: currentYear, month: currentMonth, day };
+            document.getElementById('moodModalTitle').textContent = `Mood Entry - Day ${day}`;
+
+            // Load existing moods
+            const existing = await moods.get(currentYear, currentMonth);
+            const dayMoods = existing && existing[day] ? existing[day] : [];
+
+            const existingDiv = document.getElementById('existingMoods');
+            if (Array.isArray(dayMoods) && dayMoods.length > 0) {
+                let html = '<div style="background: var(--bg); padding: 15px; border-radius: 10px; margin-bottom: 15px;">';
+                html += `<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">`;
+                html += `<h3>📝 Existing Moods (${dayMoods.length}/10)</h3>`;
+                html += `<button onclick="deleteAllMoods()" class="btn-danger" style="padding: 8px 16px; font-size: 0.9rem;">🗑️ Delete All</button>`;
+                html += `</div>`;
+                dayMoods.forEach((entry, idx) => {
+                    html += `<div style="background: white; padding: 10px; border-radius: 8px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">`;
+                    html += `<div><strong>${entry.mood}</strong> (Intensity: ${entry.intensity}/10)<br><small>${entry.reflection || 'No reflection'}</small></div>`;
+                    html += `<button onclick="deleteMood(${idx})" class="btn-danger" style="padding: 6px 12px; font-size: 0.85rem;">Delete</button>`;
+                    html += `</div>`;
+                });
+                html += '</div>';
+                existingDiv.innerHTML = html;
+            } else {
+                existingDiv.innerHTML = '';
+            }
+
             document.getElementById('moodModal').classList.add('active');
         }
 
         function closeMoodModal() {
             document.getElementById('moodModal').classList.remove('active');
             selectedMood = null;
+            document.getElementById('moodForm').reset();
             document.querySelectorAll('.mood-btn').forEach(btn => {
                 btn.style.background = '';
                 btn.style.color = '';
@@ -241,16 +370,236 @@
             const reflection = document.getElementById('reflection').value;
 
             try {
-                await moods.save(selectedDate, selectedMood, parseInt(intensity), reflection);
+                await moods.save(selectedDate.year, selectedDate.month, selectedDate.day,
+                    selectedMood, parseInt(intensity), reflection);
                 closeMoodModal();
                 loadCalendar();
                 alert('✅ Mood saved successfully!');
             } catch (error) {
-                alert('❌ Error saving mood: ' + error.message);
+                alert('❌ Error: ' + error.message);
             }
         };
 
-        // AI Chat functions
+        async function deleteMood(index) {
+            if (!confirm('Delete this mood entry?')) return;
+
+            try {
+                await moods.delete(selectedDate.year, selectedDate.month, selectedDate.day, index);
+                openMoodModal(selectedDate.day);
+                loadCalendar();
+            } catch (error) {
+                alert('Error deleting mood: ' + error.message);
+            }
+        }
+
+        async function deleteAllMoods() {
+            if (!confirm('⚠️ Delete ALL mood entries for this day? This cannot be undone!')) return;
+
+            try {
+                await moods.deleteAll(selectedDate.year, selectedDate.month, selectedDate.day);
+                closeMoodModal();
+                loadCalendar();
+                alert('✅ All moods deleted!');
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+
+        // Summary functions
+        function showSummaryOptions() {
+            document.getElementById('summaryModal').classList.add('active');
+        }
+
+        function closeSummaryModal() {
+            document.getElementById('summaryModal').classList.remove('active');
+        }
+
+        async function showSummary(mode) {
+            const year = parseInt(document.getElementById('summaryYear').value);
+            const month = parseInt(document.getElementById('summaryMonth').value);
+
+            let startDate, endDate;
+
+            if (mode === 'daily') {
+                const day = parseInt(document.getElementById('summaryDay').value);
+                startDate = endDate = new Date(year, month - 1, day);
+            } else if (mode === 'weekly') {
+                const week = parseInt(document.getElementById('summaryWeek').value);
+                const startDay = 1 + (week - 1) * 7;
+                startDate = new Date(year, month - 1, startDay);
+                const endDay = Math.min(startDay + 6, new Date(year, month, 0).getDate());
+                endDate = new Date(year, month - 1, endDay);
+            } else {
+                startDate = new Date(year, month - 1, 1);
+                endDate = new Date(year, month, 0);
+            }
+
+            // Get all moods
+            const allMoods = await moods.getAll();
+            const counts = {};
+
+            if (allMoods && typeof allMoods === 'object') {
+                Object.entries(allMoods).forEach(([y, months]) => {
+                    if (typeof months !== 'object') return;
+                    Object.entries(months).forEach(([m, days]) => {
+                        if (typeof days !== 'object') return;
+                        Object.entries(days).forEach(([d, entries]) => {
+                            const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
+                            if (date >= startDate && date <= endDate) {
+                                if (Array.isArray(entries)) {
+                                    entries.forEach(e => {
+                                        if (e.mood) {
+                                            counts[e.mood] = (counts[e.mood] || 0) + 1;
+                                        }
+                                    });
+                                }
+                            }
+                        });
+                    });
+                });
+            }
+
+            if (Object.keys(counts).length === 0) {
+                alert('😢 No moods found for this period');
+                return;
+            }
+
+            displayChart(counts, mode, startDate, endDate);
+            closeSummaryModal();
+        }
+
+        function displayChart(counts, mode, startDate, endDate) {
+            const ctx = document.getElementById('summaryChart');
+
+            if (currentChart) {
+                currentChart.destroy();
+            }
+
+            const title = `${mode.charAt(0).toUpperCase() + mode.slice(1)} Summary (${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()})`;
+            document.getElementById('chartTitle').textContent = title;
+
+            const chartType = mode === 'daily' ? 'pie' : 'bar';
+
+            currentChart = new Chart(ctx, {
+                type: chartType,
+                data: {
+                    labels: Object.keys(counts),
+                    datasets: [{
+                        label: 'Mood Count',
+                        data: Object.values(counts),
+                        backgroundColor: [
+                            '#10b981', '#3b82f6', '#ef4444', '#f59e0b',
+                            '#8b5cf6', '#ec4899', '#f97316'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { display: true },
+                        title: { display: false }
+                    }
+                }
+            });
+
+            document.getElementById('chartModal').classList.add('active');
+        }
+
+        function closeChartModal() {
+            document.getElementById('chartModal').classList.remove('active');
+        }
+
+        // Mindfulness
+        function showMindfulness() {
+            document.getElementById('mindfulnessModal').classList.add('active');
+            startBreathing();
+        }
+
+        function closeMindfulness() {
+            document.getElementById('mindfulnessModal').classList.remove('active');
+        }
+
+        function startBreathing() {
+            const timer = document.getElementById('breathingTimer');
+            const sequence = [
+                { text: 'Inhale', duration: 4 },
+                { text: 'Hold', duration: 4 },
+                { text: 'Exhale', duration: 6 }
+            ];
+
+            let step = 0;
+            let cycle = 0;
+            const maxCycles = 3;
+
+            function nextStep() {
+                if (cycle >= maxCycles) {
+                    timer.textContent = '✅ Done! Take a deep breath and relax.';
+                    return;
+                }
+
+                const current = sequence[step];
+                timer.textContent = `${current.text} for ${current.duration} seconds`;
+
+                setTimeout(() => {
+                    step++;
+                    if (step >= sequence.length) {
+                        step = 0;
+                        cycle++;
+                    }
+                    nextStep();
+                }, current.duration * 1000);
+            }
+
+            nextStep();
+        }
+
+        // Messages
+        async function updateMessageBadge() {
+            const count = await messages.getUnreadCount();
+            const btn = document.getElementById('messagesBtn');
+            if (count > 0) {
+                btn.textContent = `✉️ Messages (${count} New)`;
+                btn.style.background = 'var(--danger)';
+            } else {
+                btn.textContent = '✉️ Messages';
+                btn.style.background = '';
+            }
+        }
+
+        async function showMessages() {
+            const msgs = await messages.get();
+            const list = document.getElementById('messagesList');
+
+            if (!msgs || typeof msgs !== 'object' || Object.keys(msgs).length === 0) {
+                list.innerHTML = '<p style="text-align: center; color: var(--text-light);">No messages yet.</p>';
+            } else {
+                let html = '';
+                Object.entries(msgs).forEach(([id, msg]) => {
+                    const isNew = msg.status === 'new';
+                    html += `<div style="background: ${isNew ? '#fef3c7' : 'var(--bg)'}; padding: 15px; border-radius: 10px; margin-bottom: 10px;">`;
+                    html += `<div style="font-size: 0.85rem; color: var(--text-light); margin-bottom: 5px;">${new Date(msg.timestamp).toLocaleString()}</div>`;
+                    html += `<div>${msg.message}</div>`;
+                    if (isNew) html += `<div style="color: var(--warning); font-weight: bold; margin-top: 5px;">⭐ NEW</div>`;
+                    html += `</div>`;
+                });
+                list.innerHTML = html;
+            }
+
+            document.getElementById('messagesModal').classList.add('active');
+        }
+
+        function closeMessages() {
+            document.getElementById('messagesModal').classList.remove('active');
+        }
+
+        async function markMessagesRead() {
+            await messages.markAsRead();
+            updateMessageBadge();
+            alert('✅ All messages marked as read!');
+            closeMessages();
+        }
+
+        // AI Chat
         function showAIChat() {
             document.getElementById('chatModal').classList.add('active');
         }
@@ -265,21 +614,12 @@
 
             if (!message) return;
 
-            // Add user message to chat
             addChatMessage(message, 'user');
             input.value = '';
 
             try {
-                // Call AI API
-                const response = await ai.chat(message, chatHistory);
-
-                // Add AI response to chat
+                const response = await ai.chat(message);
                 addChatMessage(response.response, 'ai');
-
-                // Update history
-                chatHistory.push({ role: 'user', content: message });
-                chatHistory.push({ role: 'assistant', content: response.response });
-
             } catch (error) {
                 addChatMessage('Sorry, I encountered an error. Please try again.', 'ai');
             }
@@ -294,30 +634,12 @@
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
         }
 
-        // Allow Enter key to send message
         document.getElementById('chatInput').addEventListener('keypress', function (e) {
             if (e.key === 'Enter') {
                 sendMessage();
             }
         });
     </script>
-
-    <style>
-        .mood-btn {
-            padding: 12px;
-            border: 2px solid var(--border);
-            border-radius: 10px;
-            background: white;
-            cursor: pointer;
-            font-size: 1rem;
-            transition: all 0.3s;
-        }
-
-        .mood-btn:hover {
-            border-color: var(--primary);
-            transform: scale(1.05);
-        }
-    </style>
 </body>
 
 </html>

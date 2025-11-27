@@ -283,10 +283,28 @@ body {
     border-color: var(--primary);
 }
 
+.calendar-day.has-mood div:last-child {
+    font-size: 0.75rem;
+    font-weight: normal;
+    opacity: 0.9;
+}
+
 .calendar-day.empty {
     background: transparent;
     border: none;
     cursor: default;
+}
+
+/* Badge styles */
+.badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: bold;
+    background: var(--danger);
+    color: white;
+    margin-left: 5px;
 }
 
 /* ========== MODAL ========== */
