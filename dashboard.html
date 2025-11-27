@@ -463,10 +463,11 @@
 
             if (allMoods && typeof allMoods === 'object') {
                 Object.entries(allMoods).forEach(([y, months]) => {
-                    if (typeof months !== 'object') return;
+                    if (!months || typeof months !== 'object') return;
                     Object.entries(months).forEach(([m, days]) => {
-                        if (typeof days !== 'object') return;
+                        if (!days || typeof days !== 'object') return;
                         Object.entries(days).forEach(([d, entries]) => {
+                            if (!entries) return;
                             const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
                             if (date >= startDate && date <= endDate) {
                                 // FIX: Handle both Array and Object (dictionary)
