@@ -469,13 +469,19 @@
                         Object.entries(days).forEach(([d, entries]) => {
                             const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
                             if (date >= startDate && date <= endDate) {
+                                // FIX: Handle both Array and Object (dictionary)
+                                let entriesList = [];
                                 if (Array.isArray(entries)) {
-                                    entries.forEach(e => {
-                                        if (e.mood) {
-                                            counts[e.mood] = (counts[e.mood] || 0) + 1;
-                                        }
-                                    });
+                                    entriesList = entries;
+                                } else if (typeof entries === 'object' && entries !== null) {
+                                    entriesList = Object.values(entries);
                                 }
+
+                                entriesList.forEach(e => {
+                                    if (e && e.mood) {
+                                        counts[e.mood] = (counts[e.mood] || 0) + 1;
+                                    }
+                                });
                             }
                         });
                     });
@@ -664,5 +670,6 @@
         });
     </script>
 </body>
+
 
 </html>

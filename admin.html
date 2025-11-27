@@ -247,13 +247,19 @@
                             Object.entries(days).forEach(([d, entries]) => {
                                 const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
                                 if (date >= startDate && date <= endDate) {
+                                    // FIX: Handle both Array and Object (dictionary)
+                                    let entriesList = [];
                                     if (Array.isArray(entries)) {
-                                        entries.forEach(e => {
-                                            if (e.mood) {
-                                                counts[e.mood] = (counts[e.mood] || 0) + 1;
-                                            }
-                                        });
+                                        entriesList = entries;
+                                    } else if (typeof entries === 'object' && entries !== null) {
+                                        entriesList = Object.values(entries);
                                     }
+
+                                    entriesList.forEach(e => {
+                                        if (e.mood) {
+                                            counts[e.mood] = (counts[e.mood] || 0) + 1;
+                                        }
+                                    });
                                 }
                             });
                         });
@@ -336,14 +342,20 @@
                 Object.entries(allMoods).forEach(([year, months]) => {
                     Object.entries(months).forEach(([month, days]) => {
                         Object.entries(days).forEach(([day, entries]) => {
+                            // FIX: Handle both Array and Object (dictionary)
+                            let entriesList = [];
                             if (Array.isArray(entries)) {
-                                entries.forEach(entry => {
-                                    flatMoods.push({
-                                        date: new Date(parseInt(year), parseInt(month) - 1, parseInt(day)),
-                                        ...entry
-                                    });
-                                });
+                                entriesList = entries;
+                            } else if (typeof entries === 'object' && entries !== null) {
+                                entriesList = Object.values(entries);
                             }
+
+                            entriesList.forEach(entry => {
+                                flatMoods.push({
+                                    date: new Date(parseInt(year), parseInt(month) - 1, parseInt(day)),
+                                    ...entry
+                                });
+                            });
                         });
                     });
                 });
