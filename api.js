@@ -1,6 +1,6 @@
-// Load configuration from environment or use actual keys as fallback
-// For production: Create config.js with your actual keys (don't commit it!)
-// For GitHub Pages: Keys are included below and protected by Firebase Security Rules
+// Load configuration from config.js (local development) or use defaults
+// Firebase API key is PUBLIC and protected by Firebase Security Rules
+// Gemini API key should be in config.js (not committed to GitHub)
 
 let CONFIG = {
     FIREBASE_API_KEY: "AIzaSyCM10_89lNtUzOBIse37J2Mbc6qqPxncj0",
@@ -12,10 +12,18 @@ let CONFIG = {
 // Try to load from config.js if it exists (for local development)
 try {
     if (typeof window.CONFIG !== 'undefined') {
-        CONFIG = window.CONFIG;
+        CONFIG = {
+            ...CONFIG,
+            ...window.CONFIG
+        };
     }
 } catch (e) {
-    console.log('Using default API keys');
+    console.log('config.js not found, using defaults');
+}
+
+// Validate Gemini API key
+if (!CONFIG.GEMINI_KEY) {
+    console.warn('⚠️ Gemini API key not configured! AI chat will not work. Create web/config.js from config.js.example');
 }
 
 const FIREBASE_API_KEY = CONFIG.FIREBASE_API_KEY;
@@ -372,8 +380,3 @@ const adminSelection = {
         return await fbPut(`users/${userId}/assigned_admin`, adminId, idToken);
     }
 };
-
-
-
-
-
