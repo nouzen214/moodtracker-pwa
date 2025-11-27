@@ -2,7 +2,7 @@
 const FIREBASE_API_KEY = "AIzaSyCM10_89lNtUzOBIse37J2Mbc6qqPxncj0";
 const DATABASE_URL = "https://mood-tracker-df3a2-default-rtdb.asia-southeast1.firebasedatabase.app/";
 const GEMINI_KEY = "AIzaSyD8CZaYsH9vaNtNMWJSXlMMUBVlchLvvcY";
-const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent";
+const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
 
 // Helper functions
 function getAuthToken() {
@@ -152,7 +152,6 @@ const moods = {
             timestamp: new Date().toISOString()
         };
 
-        // Get existing moods for the day
         const existing = await fbGet(`moods/${userId}/${year}/${month}/${day}`, idToken);
         let moodList = Array.isArray(existing) ? existing : [];
 
@@ -200,30 +199,51 @@ const ai = {
         const url = `${GEMINI_API_URL}?key=${GEMINI_KEY}`;
         const systemInstruction = "You are a helpful Mood Tracker assistant. You must ONLY discuss topics related to mood, mental health, emotional well-being, and mindfulness. If the user asks about anything else, politely decline and steer the conversation back to their feelings.";
 
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                contents: [{
-                    parts: [
-                        { text: systemInstruction },
-                        { text: message }
-                    ]
-                }],
-                generationConfig: {
-                    temperature: 0.7,
-                    maxOutputTokens: 800
-                }
-            })
-        });
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{
+                        parts: [
+                            { text: systemInstruction },
+                            { text: message }
+                        ]
+                    }],
+                    generationConfig: {
+                        temperature: 0.7,
+                        maxOutputTokens: 800
+                    }
+                })
+            });
 
-        const data = await response.json();
+            const data = await response.json();
+            console.log('Gemini API Response:', data);
 
-        if (data.candidates && data.candidates[0]?.content?.parts?.[0]?.text) {
-            return { response: data.candidates[0].content.parts[0].text };
+            if (data.error) {
+                console.error('Gemini API Error:', data.error);
+                return { response: `API Error: ${data.error.message || 'Unknown error'}` };
+            }
+
+            if (data.candidates && data.candidates[0]?.content?.parts?.[0]?.text) {
+                return { response: data.candidates[0].content.parts[0].text };
+            }
+
+            if (data.candidates && data.candidates[0]?.finishReason === 'SAFETY') {
+                return { response: "I'm sorry, but I can't respond to that specific message due to safety guidelines. Let's talk about your mood instead." };
+            }
+
+            if (data.candidates && data.candidates[0]?.finishReason) {
+                console.warn('Gemini finish reason:', data.candidates[0].finishReason);
+                return { response: `Response blocked (Reason: ${data.candidates[0].finishReason}). Please try rephrasing your message.` };
+            }
+
+            return { response: "Sorry, I couldn't generate a response. Please try again." };
+
+        } catch (error) {
+            console.error('Gemini API Exception:', error);
+            return { response: `Error: ${error.message}. Please check your internet connection.` };
         }
-
-        return { response: "Sorry, I couldn't generate a response. Please try again." };
     }
 };
 
@@ -266,7 +286,6 @@ const admin = {
         const adminId = getUserId();
         const idToken = getAuthToken();
 
-        // Get all users assigned to this admin
         const allUsers = await fbGet('users', idToken);
         if (!allUsers || typeof allUsers !== 'object') return {};
 
