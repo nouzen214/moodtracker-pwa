@@ -1,11 +1,11 @@
-// Load configuration from environment or use placeholders
+// Load configuration from environment or use actual keys as fallback
 // For production: Create config.js with your actual keys (don't commit it!)
-// For development: Replace these with your keys
+// For development: Uses fallback keys below
 
 let CONFIG = {
-    FIREBASE_API_KEY: "YOUR_FIREBASE_API_KEY_HERE",
+    FIREBASE_API_KEY: "AIzaSyCM10_89lNtUzOBIse37J2Mbc6qqPxncj0",
     DATABASE_URL: "https://mood-tracker-df3a2-default-rtdb.asia-southeast1.firebasedatabase.app/",
-    GEMINI_KEY: "YOUR_GEMINI_API_KEY_HERE",
+    GEMINI_KEY: "AIzaSyBZUc7zxOULt4gEK15qku3c1oNlRIphV6w",
     GEMINI_API_URL: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
 };
 
@@ -15,7 +15,7 @@ try {
         CONFIG = window.CONFIG;
     }
 } catch (e) {
-    console.warn('No config.js found, using placeholder values. Please create web/config.js with your API keys.');
+    console.log('Using default API keys');
 }
 
 const FIREBASE_API_KEY = CONFIG.FIREBASE_API_KEY;
