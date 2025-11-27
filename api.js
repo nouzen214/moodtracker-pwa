@@ -5,7 +5,7 @@
 let CONFIG = {
     FIREBASE_API_KEY: "AIzaSyCM10_89lNtUzOBIse37J2Mbc6qqPxncj0",
     DATABASE_URL: "https://mood-tracker-df3a2-default-rtdb.asia-southeast1.firebasedatabase.app/",
-    GEMINI_KEY: "AIzaSyArksfYc83KgApdMw-KggnN1ZI20BwU8-8",
+    GEMINI_KEY: "AIzaSyAMVrhWYY-m5Y_UGPC3QhlXJZT9E5EYLPo",
     GEMINI_API_URL: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
 };
 
@@ -372,6 +372,7 @@ const adminSelection = {
         return await fbPut(`users/${userId}/assigned_admin`, adminId, idToken);
     }
 };
+
 
 
 
