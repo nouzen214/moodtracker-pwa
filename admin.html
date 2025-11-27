@@ -236,7 +236,7 @@
             }
 
             try {
-                const allMoods = await admin.getUserMoods(currentUserId);
+                const allMoods = await admin.getUserAllMoods(currentUserId);
                 const counts = {};
 
                 if (allMoods && typeof allMoods === 'object') {
@@ -322,7 +322,7 @@
             document.getElementById('historyModal').classList.add('active');
 
             try {
-                const allMoods = await admin.getUserMoods(uid);
+                const allMoods = await admin.getUserAllMoods(uid);
 
                 if (!allMoods || Object.keys(allMoods).length === 0) {
                     content.innerHTML = '<p>No mood history found.</p>';
