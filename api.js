@@ -1,11 +1,11 @@
 // Load configuration from environment or use actual keys as fallback
 // For production: Create config.js with your actual keys (don't commit it!)
-// For development: Uses fallback keys below
+// For GitHub Pages: Keys are included below and protected by Firebase Security Rules
 
 let CONFIG = {
-    FIREBASE_API_KEY: "",
+    FIREBASE_API_KEY: "AIzaSyCM10_89lNtUzOBIse37J2Mbc6qqPxncj0",
     DATABASE_URL: "https://mood-tracker-df3a2-default-rtdb.asia-southeast1.firebasedatabase.app/",
-    GEMINI_KEY: "",
+    GEMINI_KEY: "AIzaSyBZUc7zxOULt4gEK15qku3c1oNlRIphV6w",
     GEMINI_API_URL: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
 };
 
