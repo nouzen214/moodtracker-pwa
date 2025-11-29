@@ -341,8 +341,16 @@
                 const flatMoods = [];
 
                 Object.entries(allMoods).forEach(([year, months]) => {
+                    // Check if months is a valid object
+                    if (!months || typeof months !== 'object') return;
+
                     Object.entries(months).forEach(([month, days]) => {
+                        // Check if days is a valid object
+                        if (!days || typeof days !== 'object') return;
+
                         Object.entries(days).forEach(([day, entries]) => {
+                            if (!entries) return;
+
                             // FIX: Handle both Array and Object (dictionary)
                             let entriesList = [];
                             if (Array.isArray(entries)) {
@@ -352,10 +360,12 @@
                             }
 
                             entriesList.forEach(entry => {
-                                flatMoods.push({
-                                    date: new Date(parseInt(year), parseInt(month) - 1, parseInt(day)),
-                                    ...entry
-                                });
+                                if (entry && typeof entry === 'object') {
+                                    flatMoods.push({
+                                        date: new Date(parseInt(year), parseInt(month) - 1, parseInt(day)),
+                                        ...entry
+                                    });
+                                }
                             });
                         });
                     });
