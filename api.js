@@ -5,7 +5,7 @@
 let CONFIG = {
     FIREBASE_API_KEY: "AIzaSyCM10_89lNtUzOBIse37J2Mbc6qqPxncj0",
     DATABASE_URL: "https://mood-tracker-df3a2-default-rtdb.asia-southeast1.firebasedatabase.app/",
-    GEMINI_KEY: "AIzaSyDJdJ7eF8afLIsbjlRrAYqPtlqZYKj6Eh0",
+    GEMINI_KEY: "AIzaSyA9w87eX4aHDUNhvZ15lPnrZkso4zlgrTw",
     GEMINI_API_URL: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
 };
 
